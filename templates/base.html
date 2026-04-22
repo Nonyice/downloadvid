@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CleanRip{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --card:      #16161f;
+      --border:    #222230;
+      --accent:    #00e5a0;
+      --accent2:   #7b61ff;
+      --danger:    #ff4d6d;
+      --warning:   #ffd166;
+      --text:      #e8e8f0;
+      --muted:     #6b6b88;
+      --font:      'Syne', sans-serif;
+      --mono:      'DM Mono', monospace;
+      --radius:    12px;
+      --radius-lg: 20px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,229,160,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(123,97,255,0.05) 0%, transparent 55%);
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 0.5rem; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); background: var(--border); }
+    .nav-links a.btn-nav {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+    }
+    .nav-links a.btn-nav:hover { background: #00c98a; }
+
+    /* ── FLASH MESSAGES ── */
+    .flash-wrap {
+      max-width: 760px;
+      margin: 1.2rem auto 0;
+      padding: 0 1.5rem;
+      width: 100%;
+    }
+    .flash {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1.1rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      animation: slideIn 0.25s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .flash-success { background: rgba(0,229,160,0.12); border: 1px solid rgba(0,229,160,0.3); color: var(--accent); }
+    .flash-danger  { background: rgba(255,77,109,0.12); border: 1px solid rgba(255,77,109,0.3); color: var(--danger); }
+    .flash-info    { background: rgba(123,97,255,0.12); border: 1px solid rgba(123,97,255,0.3); color: var(--accent2); }
+    .flash-warning { background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.3); color: var(--warning); }
+
+    /* ── MAIN CONTENT ── */
+    main { flex: 1; width: 100%; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ── FORM ELEMENTS (global) ── */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      padding: 0.7rem 1rem;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,229,160,0.12);
+    }
+    .form-control.is-invalid { border-color: var(--danger); }
+    .invalid-feedback {
+      color: var(--danger);
+      font-size: 0.78rem;
+      margin-top: 0.3rem;
+      display: block;
+    }
+    .form-hint {
+      color: var(--muted);
+      font-size: 0.76rem;
+      margin-top: 0.3rem;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.7rem 1.4rem;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: rgba(255,77,109,0.15); color: var(--danger); border: 1px solid rgba(255,77,109,0.3); }
+    .btn-danger:hover { background: rgba(255,77,109,0.25); }
+    .btn-full { width: 100%; }
+    .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-done       { background: rgba(0,229,160,0.15); color: var(--accent); }
+    .badge-processing { background: rgba(255,209,102,0.15); color: var(--warning); }
+    .badge-failed     { background: rgba(255,77,109,0.15); color: var(--danger); }
+    .badge-pending    { background: rgba(123,97,255,0.15); color: var(--accent2); }
+
+    /* ── PLATFORM CHIP ── */
+    .chip {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      background: var(--border);
+      color: var(--muted);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin: 1.2rem 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── UTIL ── */
+    .text-muted { color: var(--muted); }
+    .text-accent { color: var(--accent); }
+    .text-center { text-align: center; }
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-3 { margin-top: 1.5rem; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <nav>
+    <a class="nav-brand" href="{{ url_for('main.index') }}">Clean<span>Rip</span></a>
+    <div class="nav-links">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('main.history') }}">History</a>
+        <a href="{{ url_for('auth.logout') }}">Sign Out</a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}">Sign In</a>
+        <a href="{{ url_for('auth.register') }}" class="btn-nav">Get Started</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">
+            {% if category == 'success' %}✓{% elif category == 'danger' %}✕{% elif category == 'info' %}ℹ{% else %}⚠{% endif %}
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    &copy; {{ 2025 }} CleanRip &mdash; built by <a href="#">PlimsolTech Group</a>
+  </footer>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

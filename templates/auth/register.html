@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Create Account — CleanRip{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 130px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+  }
+  .auth-card h2 {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.4rem;
+  }
+  .auth-card .subtitle {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+  }
+  .optional-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .optional-label span {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--border);
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pw-rules {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.8;
+    font-family: var(--mono);
+  }
+  .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--muted); }
+  .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2>Create account</h2>
+    <p class="subtitle">Join CleanRip — it's free</p>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.username.label }}
+        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="e.g. emmanuel_dev") }}
+        {% for error in form.username.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label class="optional-label">
+          {{ form.email.label.text }}
+          <span>Optional</span>
+        </label>
+        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
+        {% for error in form.email.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label class="optional-label">
+          {{ form.phone.label.text }}
+          <span>Optional</span>
+        </label>
+        {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="+2348012345678") }}
+        <span class="form-hint">International format required — starts with + and country code</span>
+        {% for error in form.phone.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password.label }}
+        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+        <div class="pw-rules">
+          ✓ At least 6 characters &nbsp;·&nbsp; ✓ Uppercase (A–Z)<br>
+          ✓ Lowercase (a–z) &nbsp;·&nbsp; ✓ Digit (0–9) &nbsp;·&nbsp; ✓ Symbol (!@#$%...)
+        </div>
+        {% for error in form.password.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password2.label }}
+        {{ form.password2(class="form-control" + (" is-invalid" if form.password2.errors else "")) }}
+        {% for error in form.password2.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

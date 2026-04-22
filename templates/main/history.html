@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Download History — CleanRip{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hist-wrap { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem; }
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .page-header h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: var(--card); }
+  tbody td {
+    padding: 0.9rem 1rem;
+    font-size: 0.85rem;
+    vertical-align: middle;
+  }
+  .td-title {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+  }
+  .td-url {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .td-actions { display: flex; gap: 0.4rem; }
+
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 2rem;
+  }
+  .pagination a, .pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .pagination a:hover { border-color: var(--accent); color: var(--accent); }
+  .pagination .current { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hist-wrap">
+  <div class="page-header">
+    <h1>Download History</h1>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-ghost btn-sm">← Back to Dashboard</a>
+  </div>
+
+  {% if downloads.items %}
+    <table>
+      <thead>
+        <tr>
+          <th>Title / URL</th>
+          <th>Platform</th>
+          <th>Status</th>
+          <th>Size</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dl in downloads.items %}
+          <tr>
+            <td>
+              <div class="td-title">{{ dl.video_title or '—' }}</div>
+              <div class="td-url" title="{{ dl.original_url }}">{{ dl.original_url }}</div>
+            </td>
+            <td><span class="chip">{{ dl.platform or 'other' }}</span></td>
+            <td><span class="badge badge-{{ dl.status }}">{{ dl.status }}</span></td>
+            <td style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);">
+              {{ dl.file_size_human() if dl.file_size else '—' }}
+            </td>
+            <td style="font-family:var(--mono);font-size:0.78rem;color:var(--muted);">
+              {{ dl.created_at.strftime('%d %b %Y') }}
+            </td>
+            <td>
+              <div class="td-actions">
+                {% if dl.status == 'done' %}
+                  <a href="{{ url_for('main.download_file', download_id=dl.id) }}" class="btn btn-ghost btn-sm">⬇</a>
+                {% endif %}
+                <form method="POST" action="{{ url_for('main.delete_download', download_id=dl.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Remove this record?')">✕</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if downloads.pages > 1 %}
+      <div class="pagination">
+        {% if downloads.has_prev %}
+          <a href="{{ url_for('main.history', page=downloads.prev_num) }}">&lsaquo;</a>
+        {% endif %}
+        {% for page_num in downloads.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if page_num %}
+            {% if page_num == downloads.page %}
+              <span class="current">{{ page_num }}</span>
+            {% else %}
+              <a href="{{ url_for('main.history', page=page_num) }}">{{ page_num }}</a>
+            {% endif %}
+          {% else %}
+            <span>…</span>
+          {% endif %}
+        {% endfor %}
+        {% if downloads.has_next %}
+          <a href="{{ url_for('main.history', page=downloads.next_num) }}">&rsaquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="empty-state">
+      <div class="icon">📭</div>
+      <p>No download history yet.</p>
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary mt-2">Make your first download</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

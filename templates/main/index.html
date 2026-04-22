@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}CleanRip — Strip Watermarks, Keep Quality{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 7rem 1.5rem 5rem;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.25);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 1.4rem;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p {
+    font-size: 1.1rem;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 520px;
+    margin: 0 auto 2.5rem;
+  }
+  .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+
+  .platforms {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    margin-top: 4rem;
+    padding: 0 1.5rem 1rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .platforms span {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+    max-width: 900px;
+    margin: 5rem auto 6rem;
+    padding: 0 1.5rem;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.8rem 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .feature-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .feature-icon { font-size: 1.8rem; margin-bottom: 1rem; }
+  .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .feature-card p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-tag">⚡ Watermark-free downloads</div>
+  <h1>Strip the clutter.<br>Keep the <em>content.</em></h1>
+  <p>Paste any video link from TikTok, Instagram, YouTube or Facebook. CleanRip removes watermarks and delivers a clean, reusable MP4 with full audio.</p>
+  <div class="hero-cta">
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Get Started Free</a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Sign In</a>
+  </div>
+</section>
+
+<div class="platforms">
+  <span>TikTok</span>
+  <span>Instagram</span>
+  <span>YouTube</span>
+  <span>Facebook</span>
+  <span>Twitter / X</span>
+  <span>Snapchat</span>
+</div>
+
+<section class="features">
+  <div class="feature-card">
+    <div class="feature-icon">🧹</div>
+    <h3>Watermark Removal</h3>
+    <p>Downloads the clean source version — no overlaid logos, usernames or platform branding.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🔊</div>
+    <h3>Full Audio Intact</h3>
+    <p>Audio is merged and preserved at original quality. No silent clips.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📁</div>
+    <h3>Download History</h3>
+    <p>Every video you process is saved to your account. Re-download anytime.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">⚡</div>
+    <h3>Fast Processing</h3>
+    <p>yt-dlp powered engine picks the best available quality in seconds.</p>
+  </div>
+</section>
+{% endblock %}

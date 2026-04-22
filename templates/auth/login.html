@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Sign In — CleanRip{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap {
+    min-height: calc(100vh - 130px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+  }
+  .auth-card h2 {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.4rem;
+  }
+  .auth-card .subtitle {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+  }
+  .remember-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.4rem;
+  }
+  .remember-row input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
+  .remember-row label { font-size: 0.85rem; color: var(--muted); cursor: pointer; margin: 0; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--muted); }
+  .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2>Welcome back</h2>
+    <p class="subtitle">Sign in to your CleanRip account</p>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.identifier.label }}
+        {{ form.identifier(class="form-control" + (" is-invalid" if form.identifier.errors else "")) }}
+        {% for error in form.identifier.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password.label }}
+        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+        {% for error in form.password.errors %}
+          <span class="invalid-feedback">{{ error }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="remember-row">
+        {{ form.remember_me(id="remember_me") }}
+        <label for="remember_me">{{ form.remember_me.label.text }}</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Create one</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
