@@ -1,95 +1,8 @@
-import os
-import re
-import uuid
-from datetime import datetime
-
-from flask import (
-    Blueprint,
-    render_template,
-    redirect,
-    url_for,
-    flash,
-    request,
-    current_app,
-    send_from_directory,
-    abort,
-)
-
-from flask_login import login_required, current_user
-
-from app import db
-from app.main.forms import VideoDownloadForm, DeleteForm
-from app.models import Download
-
-import yt_dlp
-from yt_dlp.utils import DownloadError
-
-main = Blueprint('main', __name__)
-
-
-# ---------------------------------------------------------
-# PLATFORM DETECTION
-# ---------------------------------------------------------
-
-def detect_platform(url):
-    patterns = {
-        'tiktok': r'tiktok\.com',
-        'instagram': r'instagram\.com|instagr\.am',
-        'youtube': r'youtube\.com|youtu\.be',
-        'facebook': r'facebook\.com|fb\.watch',
-        'twitter': r'twitter\.com|x\.com',
-        'snapchat': r'snapchat\.com',
-        'vimeo': r'vimeo\.com',
-        'dailymotion': r'dailymotion\.com',
-        'reddit': r'reddit\.com',
-        'pinterest': r'pinterest\.com',
-        'threads': r'threads\.net',
-        'spotify': r'spotify\.com',   
-    }
-
-    for platform, pattern in patterns.items():
-        if re.search(pattern, url, re.IGNORECASE):
-            return platform
-
-    return 'other'
-
-
-# ---------------------------------------------------------
-# CLEAN ERROR MESSAGES
-# ---------------------------------------------------------
-
-def clean_error_message(error_text):
-    error_text = str(error_text)
-
-    if 'DRM' in error_text.upper():
-        return (
-            'This video appears to be DRM protected and cannot be downloaded. '
-            'Streaming platforms with encryption are not supported.'
-        )
-
-    if 'Unsupported URL' in error_text:
-        return 'This video link is not supported.'
-
-    if 'Requested format is not available' in error_text:
-        return 'No downloadable video format was found.'
-
-    if 'Private video' in error_text:
-        return 'This video is private.'
-
-    if 'Sign in' in error_text:
-        return 'This video requires login or authentication.'
-
-    if '404' in error_text:
-        return 'Video not found.'
-
-    return error_text[:300]
-
-
-# ---------------------------------------------------------
-# DOWNLOAD LOGIC
-# ---------------------------------------------------------
-
 def run_yt_dlp(url, output_dir):
+    """
+    Download a video using yt-dlp and return:
+        filename, title, size
+    """
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -97,60 +10,61 @@ def run_yt_dlp(url, output_dir):
 
     outtmpl = os.path.join(
         output_dir,
-        f'{uid}_%(title).80s.%(ext)s'
+        f"{uid}_%(title).80s.%(ext)s"
     )
 
     ydl_opts = {
-        'outtmpl': outtmpl,
+        # Output
+        "outtmpl": outtmpl,
 
-        # Better compatibility
-        'format': (
-            'bestvideo+bestaudio/best'
-        ),
+        # Download highest quality available
+        "format": "bestvideo+bestaudio/best",
 
-        # Merge to mp4 where possible
-        'merge_output_format': 'mp4',
+        # Merge into MP4 if ffmpeg exists
+        "merge_output_format": "mp4",
+
+        # One video only
+        "noplaylist": True,
 
         # Cleaner filenames
-        'restrictfilenames': True,
+        "restrictfilenames": True,
 
-        # Better extraction
-        'quiet': True,
-        'no_warnings': True,
+        # Logging
+        "quiet": True,
+        "no_warnings": True,
 
-        # Avoid playlist downloads
-        'noplaylist': True,
+        # Network reliability
+        "retries": 10,
+        "fragment_retries": 10,
+        "socket_timeout": 30,
 
-        # SSL stability
-        'nocheckcertificate': True,
+        # SSL
+        "nocheckcertificate": True,
 
-        # Retries
-        'retries': 10,
-        'fragment_retries': 10,
+        # Geo bypass
+        "geo_bypass": True,
 
-        # Prevent certificate problems
-        'geo_bypass': True,
-
-        # Better headers
-        'http_headers': {
-            'User-Agent': (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/122.0 Safari/537.36'
+        # Browser-like request
+        "http_headers": {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/138.0 Safari/537.36"
             )
         },
 
-        # TikTok improvements
-        'extractor_args': {
-            'tiktok': {
-                'webpage_download': ['false']
-            }
-        },
+        # Optional:
+        # Uncomment if using exported cookies.txt
+        #
+        # "cookiefile": os.path.join(
+        #     current_app.root_path,
+        #     "cookies.txt"
+        # ),
 
-        # FFmpeg processing
-        'postprocessors': [{
-            'key': 'FFmpegVideoConvertor',
-            'preferedformat': 'mp4',
+        # Convert videos when possible
+        "postprocessors": [{
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4",
         }],
     }
 
@@ -159,41 +73,40 @@ def run_yt_dlp(url, output_dir):
 
             info = ydl.extract_info(url, download=True)
 
-            if not info:
-                raise Exception('Unable to extract video information.')
+            if info is None:
+                raise Exception("Unable to retrieve video information.")
 
-            title = info.get('title', 'video')
+            title = info.get("title", "Untitled Video")
 
             filename = ydl.prepare_filename(info)
 
-            # Handle extension changes
             if not os.path.exists(filename):
 
                 base = os.path.splitext(filename)[0]
 
-                possible_exts = [
-                    '.mp4',
-                    '.mkv',
-                    '.webm',
-                    '.mov'
-                ]
+                for ext in (
+                    ".mp4",
+                    ".mkv",
+                    ".webm",
+                    ".mov",
+                    ".m4a",
+                    ".mp3"
+                ):
+                    possible = base + ext
 
-                for ext in possible_exts:
-                    possible_file = base + ext
-
-                    if os.path.exists(possible_file):
-                        filename = possible_file
+                    if os.path.exists(possible):
+                        filename = possible
                         break
 
             if not os.path.exists(filename):
-                raise Exception('Downloaded file could not be located.')
+                raise Exception("Downloaded file could not be located.")
 
-            size = os.path.getsize(filename)
+            filesize = os.path.getsize(filename)
 
             return (
                 os.path.basename(filename),
                 title,
-                size
+                filesize,
             )
 
     except DownloadError as e:
@@ -201,195 +114,3 @@ def run_yt_dlp(url, output_dir):
 
     except Exception as e:
         raise Exception(clean_error_message(str(e)))
-
-
-# ---------------------------------------------------------
-# ROUTES
-# ---------------------------------------------------------
-
-@main.route('/')
-def index():
-
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
-
-    return render_template('main/index.html')
-
-
-@main.route('/dashboard', methods=['GET', 'POST'])
-@login_required
-def dashboard():
-
-    form = VideoDownloadForm()
-
-    downloads = (
-        Download.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Download.created_at.desc())
-        .limit(20)
-        .all()
-    )
-
-    delete_form = DeleteForm()
-
-    return render_template(
-        'main/dashboard.html',
-        form=form,
-        downloads=downloads,
-        delete_form=delete_form
-    )
-
-
-@main.route('/process', methods=['POST'])
-@login_required
-def process():
-
-    form = VideoDownloadForm()
-
-    if not form.validate_on_submit():
-
-        flash(
-            'Please paste a valid video URL.',
-            'danger'
-        )
-
-        return redirect(url_for('main.dashboard'))
-
-    url = form.url.data.strip()
-
-    platform = detect_platform(url)
-
-    download_folder = current_app.config['DOWNLOAD_FOLDER']
-
-    record = Download(
-        user_id=current_user.id,
-        original_url=url,
-        platform=platform,
-        status='processing',
-    )
-
-    db.session.add(record)
-    db.session.commit()
-
-    try:
-
-        filename, title, size = run_yt_dlp(
-            url,
-            download_folder
-        )
-
-        record.filename = filename
-        record.video_title = title
-        record.file_size = size
-        record.status = 'done'
-        record.completed_at = datetime.utcnow()
-
-        db.session.commit()
-
-        flash(
-            f'"{title}" is ready for download.',
-            'success'
-        )
-
-    except Exception as e:
-
-        record.status = 'failed'
-        record.error_message = str(e)
-
-        db.session.commit()
-
-        flash(
-            f'Failed to process video: {str(e)}',
-            'danger'
-        )
-
-    return redirect(url_for('main.dashboard'))
-
-
-@main.route('/download/<int:download_id>')
-@login_required
-def download_file(download_id):
-
-    record = Download.query.filter_by(
-        id=download_id,
-        user_id=current_user.id
-    ).first_or_404()
-
-    if record.status != 'done' or not record.filename:
-        abort(404)
-
-    folder = current_app.config['DOWNLOAD_FOLDER']
-
-    file_path = os.path.join(
-        folder,
-        record.filename
-    )
-
-    if not os.path.exists(file_path):
-        abort(404)
-
-    return send_from_directory(
-        folder,
-        record.filename,
-        as_attachment=True
-    )
-
-
-@main.route('/delete/<int:download_id>', methods=['POST'])
-@login_required
-def delete_download(download_id):
-
-    record = Download.query.filter_by(
-        id=download_id,
-        user_id=current_user.id
-    ).first_or_404()
-
-    if record.filename:
-
-        path = os.path.join(
-            current_app.config['DOWNLOAD_FOLDER'],
-            record.filename
-        )
-
-        if os.path.exists(path):
-            os.remove(path)
-
-    db.session.delete(record)
-    db.session.commit()
-
-    flash(
-        'Download removed successfully.',
-        'info'
-    )
-
-    return redirect(url_for('main.dashboard'))
-
-
-@main.route('/history')
-@login_required
-def history():
-
-    page = request.args.get(
-        'page',
-        1,
-        type=int
-    )
-
-    downloads = (
-        Download.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Download.created_at.desc())
-        .paginate(
-            page=page,
-            per_page=15,
-            error_out=False
-        )
-    )
-
-    delete_form = DeleteForm()
-
-    return render_template(
-        "main/history.html",
-        downloads=downloads,
-        delete_form=delete_form
-    )
