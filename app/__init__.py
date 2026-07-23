@@ -18,12 +18,6 @@ def create_app(config_name=None):
     app = Flask(__name__, template_folder='../templates')
     app.config.from_object(config[config_name])
 
-    # DEBUG
-    print("=" * 60)
-    print("FLASK_ENV:", config_name)
-    print("DATABASE_URI:", app.config.get("SQLALCHEMY_DATABASE_URI"))
-    print("=" * 60)
-
     os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
 
     db.init_app(app)
@@ -35,6 +29,10 @@ def create_app(config_name=None):
     from app.main.routes import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    # ADD THESE LINES HERE
+    from app.models import User, Download
+
+    with app.app_context():
+        db.create_all()
+
     return app
-with app.app_context():
-    db.create_all()
