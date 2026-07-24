@@ -45,7 +45,7 @@ def detect_platform(url):
         'reddit': r'reddit\.com',
         'pinterest': r'pinterest\.com',
         'threads': r'threads\.net',
-        'spotify': r'spotify\.com',   
+        'spotify': r'spotify\.com',
     }
 
     for platform, pattern in patterns.items():
@@ -101,96 +101,83 @@ def run_yt_dlp(url, output_dir):
         f'{uid}_%(title).80s.%(ext)s'
     )
 
-   ydl_opts = {
-    'outtmpl': outtmpl,
+    ydl_opts = {
+        'outtmpl': outtmpl,
 
-    'format': 'bestvideo+bestaudio/best',
+        'format': 'bestvideo+bestaudio/best',
 
-    'merge_output_format': 'mp4',
+        'merge_output_format': 'mp4',
 
-    'restrictfilenames': True,
+        'restrictfilenames': True,
 
-    'quiet': True,
-    'no_warnings': True,
+        'quiet': True,
+        'no_warnings': True,
 
-    'noplaylist': True,
+        'noplaylist': True,
 
-    'nocheckcertificate': True,
+        'nocheckcertificate': True,
 
-    'retries': 10,
-    'fragment_retries': 10,
+        'retries': 10,
+        'fragment_retries': 10,
 
-    'geo_bypass': True,
+        'geo_bypass': True,
 
-    'http_headers': {
-        'User-Agent': (
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-            'AppleWebKit/537.36 (KHTML, like Gecko) '
-            'Chrome/122.0 Safari/537.36'
-        )
-    },
+        'http_headers': {
+            'User-Agent': (
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/122.0 Safari/537.36'
+            )
+        },
 
-    'extractor_args': {
-        'tiktok': {
-            'webpage_download': ['false']
-        }
-    },
+        'extractor_args': {
+            'tiktok': {
+                'webpage_download': ['false']
+            }
+        },
 
-    'postprocessors': [
-        {
-            'key': 'FFmpegVideoConvertor',
-            'preferredformat': 'mp4',
-        }
-    ],
-}
+        'postprocessors': [
+            {
+                'key': 'FFmpegVideoConvertor',
+                'preferredformat': 'mp4',
+            }
+        ],
+    }
 
-try:
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-        info = ydl.extract_info(url, download=True)
+            if not info:
+                raise Exception('Unable to extract video information.')
 
-        if not info:
-            raise Exception('Unable to extract video information.')
+            title = info.get('title', 'video')
+            filename = ydl.prepare_filename(info)
 
-        title = info.get('title', 'video')
+            # If the expected filename isn't found, search for any file
+            # with the same base name regardless of extension.
+            if not os.path.exists(filename):
+                base = os.path.splitext(filename)[0]
+                matches = glob.glob(base + ".*")
+                if matches:
+                    filename = matches[0]
 
-        filename = ydl.prepare_filename(info)
+            # Final fallback: use the newest file in the download folder.
+            if not os.path.exists(filename):
+                downloaded_files = [
+                    os.path.join(output_dir, f)
+                    for f in os.listdir(output_dir)
+                    if os.path.isfile(os.path.join(output_dir, f))
+                ]
 
-        filename = ydl.prepare_filename(info)
+                if downloaded_files:
+                    filename = max(downloaded_files, key=os.path.getmtime)
 
-# If the expected filename isn't found, search for any file
-# with the same base name regardless of extension.
-if not os.path.exists(filename):
+            if not os.path.exists(filename):
+                raise Exception("Downloaded file could not be located.")
 
-    base = os.path.splitext(filename)[0]
+            size = os.path.getsize(filename)
 
-    matches = glob.glob(base + ".*")
-
-    if matches:
-        filename = matches[0]
-
-# Final fallback: use the newest file in the download folder.
-if not os.path.exists(filename):
-
-    downloaded_files = [
-        os.path.join(output_dir, f)
-        for f in os.listdir(output_dir)
-        if os.path.isfile(os.path.join(output_dir, f))
-    ]
-
-    if downloaded_files:
-        filename = max(downloaded_files, key=os.path.getmtime)
-
-if not os.path.exists(filename):
-    raise Exception("Downloaded file could not be located.")
-
-size = os.path.getsize(filename)
-
-return (
-    os.path.basename(filename),
-    title,
-    size
-)
             return (
                 os.path.basename(filename),
                 title,
@@ -202,43 +189,6 @@ return (
 
     except Exception as e:
         raise Exception(clean_error_message(str(e)))
-
-
-# ---------------------------------------------------------
-# ROUTES
-# ---------------------------------------------------------
-
-@main.route('/')
-def index():
-
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
-
-    return render_template('main/index.html')
-
-
-@main.route('/dashboard', methods=['GET', 'POST'])
-@login_required
-def dashboard():
-
-    form = VideoDownloadForm()
-
-    downloads = (
-        Download.query
-        .filter_by(user_id=current_user.id)
-        .order_by(Download.created_at.desc())
-        .limit(20)
-        .all()
-    )
-
-    delete_form = DeleteForm()
-
-    return render_template(
-        'main/dashboard.html',
-        form=form,
-        downloads=downloads,
-        delete_form=delete_form
-    )
 
 
 @main.route('/process', methods=['GET', 'POST'])
@@ -294,13 +244,15 @@ def process():
 
     except Exception as e:
 
+        error_message = clean_error_message(str(e))
+
         record.status = 'failed'
-        record.error_message = str(e)
+        record.error_message = error_message
 
         db.session.commit()
 
         flash(
-            f'Failed to process video: {str(e)}',
+            f'Failed to process video: {error_message}',
             'danger'
         )
 
