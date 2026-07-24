@@ -191,6 +191,47 @@ def run_yt_dlp(url, output_dir):
         raise Exception(clean_error_message(str(e)))
 
 
+# ---------------------------------------------------------
+# HOME
+# ---------------------------------------------------------
+
+@main.route('/')
+def index():
+
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    return render_template('main/index.html')
+
+
+# ---------------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------------
+
+@main.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+
+    form = VideoDownloadForm()
+
+    downloads = (
+        Download.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Download.created_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    delete_form = DeleteForm()
+
+    return render_template(
+        'main/dashboard.html',
+        form=form,
+        downloads=downloads,
+        delete_form=delete_form
+    )
+
+
 @main.route('/process', methods=['GET', 'POST'])
 @login_required
 def process():
