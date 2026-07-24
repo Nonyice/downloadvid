@@ -139,7 +139,7 @@ def run_yt_dlp(url, output_dir):
         'postprocessors': [
             {
                 'key': 'FFmpegVideoConvertor',
-                'preferredformat': 'mp4',
+                'preferedformat': 'mp4',
             }
         ],
     }
