@@ -1,7 +1,7 @@
 import os
 import re
 import uuid
-import logging
+import glob
 from datetime import datetime
 
 from flask import (
@@ -25,193 +25,191 @@ from app.models import Download
 import yt_dlp
 from yt_dlp.utils import DownloadError
 
-main = Blueprint("main", __name__)
-
-logger = logging.getLogger(__name__)
+main = Blueprint('main', __name__)
 
 
-# ----------------------------------------------------
+# ---------------------------------------------------------
 # PLATFORM DETECTION
-# ----------------------------------------------------
+# ---------------------------------------------------------
 
 def detect_platform(url):
-
     patterns = {
-        "youtube": r"(youtube\.com|youtu\.be)",
-        "facebook": r"(facebook\.com|fb\.watch)",
-        "instagram": r"(instagram\.com|instagr\.am)",
-        "tiktok": r"(tiktok\.com)",
-        "twitter": r"(twitter\.com|x\.com)",
-        "reddit": r"(reddit\.com)",
-        "threads": r"(threads\.net)",
-        "vimeo": r"(vimeo\.com)",
-        "dailymotion": r"(dailymotion\.com)",
-        "pinterest": r"(pinterest\.com)",
-        "spotify": r"(spotify\.com)",
-        "snapchat": r"(snapchat\.com)",
+        'tiktok': r'tiktok\.com',
+        'instagram': r'instagram\.com|instagr\.am',
+        'youtube': r'youtube\.com|youtu\.be',
+        'facebook': r'facebook\.com|fb\.watch',
+        'twitter': r'twitter\.com|x\.com',
+        'snapchat': r'snapchat\.com',
+        'vimeo': r'vimeo\.com',
+        'dailymotion': r'dailymotion\.com',
+        'reddit': r'reddit\.com',
+        'pinterest': r'pinterest\.com',
+        'threads': r'threads\.net',
+        'spotify': r'spotify\.com',   
     }
 
     for platform, pattern in patterns.items():
         if re.search(pattern, url, re.IGNORECASE):
             return platform
 
-    return "other"
+    return 'other'
 
 
-# ----------------------------------------------------
-# CLEAN ERROR
-# ----------------------------------------------------
+# ---------------------------------------------------------
+# CLEAN ERROR MESSAGES
+# ---------------------------------------------------------
 
-def clean_error_message(message):
+def clean_error_message(error_text):
+    error_text = str(error_text)
 
-    text = str(message)
-
-    if "No video formats found" in text:
+    if 'DRM' in error_text.upper():
         return (
-            "This video cannot be downloaded. "
-            "The platform did not provide any downloadable video format."
+            'This video appears to be DRM protected and cannot be downloaded. '
+            'Streaming platforms with encryption are not supported.'
         )
 
-    if "Unsupported URL" in text:
-        return "Unsupported video link."
+    if 'Unsupported URL' in error_text:
+        return 'This video link is not supported.'
 
-    if "Private video" in text:
-        return "This video is private."
+    if 'Requested format is not available' in error_text:
+        return 'No downloadable video format was found.'
 
-    if "DRM" in text.upper():
-        return (
-            "This video is DRM protected and cannot be downloaded."
-        )
+    if 'Private video' in error_text:
+        return 'This video is private.'
 
-    if "Sign in" in text:
-        return (
-            "This video requires authentication."
-        )
+    if 'Sign in' in error_text:
+        return 'This video requires login or authentication.'
 
-    if "404" in text:
-        return "Video not found."
+    if '404' in error_text:
+        return 'Video not found.'
 
-    return text[:300]
+    return error_text[:300]
 
 
-# ----------------------------------------------------
-# YT-DLP
-# ----------------------------------------------------
+# ---------------------------------------------------------
+# DOWNLOAD LOGIC
+# ---------------------------------------------------------
 
-def run_yt_dlp(url, output_folder):
+def run_yt_dlp(url, output_dir):
 
-    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     uid = uuid.uuid4().hex[:10]
 
     outtmpl = os.path.join(
-        output_folder,
-        f"{uid}.%(ext)s"
+        output_dir,
+        f'{uid}_%(title).80s.%(ext)s'
     )
 
     ydl_opts = {
+        'outtmpl': outtmpl,
 
-        "outtmpl": outtmpl,
+        # Better compatibility
+        'format': (
+            'bestvideo+bestaudio/best'
+        ),
 
-        "format":
-            "bestvideo+bestaudio/best",
+        # Merge to mp4 where possible
+        'merge_output_format': 'mp4',
 
-        "merge_output_format": "mp4",
+        # Cleaner filenames
+        'restrictfilenames': True,
 
-        "restrictfilenames": True,
+        # Better extraction
+        'quiet': True,
+        'no_warnings': True,
 
-        "quiet": True,
+        # Avoid playlist downloads
+        'noplaylist': True,
 
-        "no_warnings": True,
+        # SSL stability
+        'nocheckcertificate': True,
 
-        "noplaylist": True,
+        # Retries
+        'retries': 10,
+        'fragment_retries': 10,
 
-        "nocheckcertificate": True,
+        # Prevent certificate problems
+        'geo_bypass': True,
 
-        "geo_bypass": True,
-
-        "retries": 10,
-
-        "fragment_retries": 10,
-
-        "http_headers": {
-            "User-Agent":
-            (
-                "Mozilla/5.0 "
-                "(Windows NT 10.0; Win64; x64)"
+        # Better headers
+        'http_headers': {
+            'User-Agent': (
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/122.0 Safari/537.36'
             )
         },
 
-        "postprocessors": [
-            {
-                "key": "FFmpegVideoConvertor",
-                "preferedformat": "mp4",
+        # TikTok improvements
+        'extractor_args': {
+            'tiktok': {
+                'webpage_download': ['false']
             }
-        ]
-    }
+        },
 
-    try:
-
+        # FFmpeg processing
+        'postprocessors': [{
+        'key': 'FFmpegVideoConvertor',
+        'preferredformat': 'mp4',
+        }],
+ try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-            info = ydl.extract_info(
-                url,
-                download=True
-            )
+            info = ydl.extract_info(url, download=True)
 
             if not info:
-                raise Exception(
-                    "Unable to extract video information."
-                )
+                raise Exception('Unable to extract video information.')
 
-            title = (
-                info.get("title")
-                or "Untitled Video"
-            )
+            title = info.get('title', 'video')
 
             filename = ydl.prepare_filename(info)
 
-            base = os.path.splitext(filename)[0]
+# If the expected filename isn't found, search for any file
+# with the same base name regardless of extension.
+if not os.path.exists(filename):
 
-            if not os.path.exists(filename):
+    base = os.path.splitext(filename)[0]
 
-                for ext in (
-                    ".mp4",
-                    ".mkv",
-                    ".mov",
-                    ".webm",
-                ):
+    matches = glob.glob(base + ".*")
 
-                    possible = base + ext
+    if matches:
+        filename = matches[0]
 
-                    if os.path.exists(possible):
-                        filename = possible
-                        break
+# Final fallback: use the newest file in the download folder.
+if not os.path.exists(filename):
 
-            if not os.path.exists(filename):
-                raise Exception(
-                    "Downloaded file not found."
-                )
+    downloaded_files = [
+        os.path.join(output_dir, f)
+        for f in os.listdir(output_dir)
+        if os.path.isfile(os.path.join(output_dir, f))
+    ]
 
-            size = os.path.getsize(filename)
+    if downloaded_files:
+        filename = max(downloaded_files, key=os.path.getmtime)
 
+if not os.path.exists(filename):
+    raise Exception("Downloaded file could not be located.")
+
+size = os.path.getsize(filename)
+
+return (
+    os.path.basename(filename),
+    title,
+    size
+)
             return (
                 os.path.basename(filename),
-                title.strip()[:1000],
+                title,
                 size
             )
 
     except DownloadError as e:
-
-        raise Exception(
-            clean_error_message(e)
-        )
+        raise Exception(clean_error_message(str(e)))
 
     except Exception as e:
+        raise Exception(clean_error_message(str(e)))
 
-        raise Exception(
-            clean_error_message(e)
-        )
 
 # ---------------------------------------------------------
 # ROUTES
@@ -250,7 +248,7 @@ def dashboard():
     )
 
 
-@main.route('/process', methods=['POST'])
+@main.route('/process', methods=['GET', 'POST'])
 @login_required
 def process():
 
