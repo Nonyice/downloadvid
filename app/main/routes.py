@@ -144,6 +144,11 @@ def run_yt_dlp(url, output_dir):
         ],
     }
 
+    cookies_file = current_app.config.get('YTDLP_COOKIES_FILE')
+
+    if cookies_file and os.path.exists(cookies_file):
+        ydl_opts['cookiefile'] = cookies_file
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
