@@ -101,69 +101,62 @@ def run_yt_dlp(url, output_dir):
         f'{uid}_%(title).80s.%(ext)s'
     )
 
-    ydl_opts = {
-        'outtmpl': outtmpl,
+   ydl_opts = {
+    'outtmpl': outtmpl,
 
-        # Better compatibility
-        'format': (
-            'bestvideo+bestaudio/best'
-        ),
+    'format': 'bestvideo+bestaudio/best',
 
-        # Merge to mp4 where possible
-        'merge_output_format': 'mp4',
+    'merge_output_format': 'mp4',
 
-        # Cleaner filenames
-        'restrictfilenames': True,
+    'restrictfilenames': True,
 
-        # Better extraction
-        'quiet': True,
-        'no_warnings': True,
+    'quiet': True,
+    'no_warnings': True,
 
-        # Avoid playlist downloads
-        'noplaylist': True,
+    'noplaylist': True,
 
-        # SSL stability
-        'nocheckcertificate': True,
+    'nocheckcertificate': True,
 
-        # Retries
-        'retries': 10,
-        'fragment_retries': 10,
+    'retries': 10,
+    'fragment_retries': 10,
 
-        # Prevent certificate problems
-        'geo_bypass': True,
+    'geo_bypass': True,
 
-        # Better headers
-        'http_headers': {
-            'User-Agent': (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/122.0 Safari/537.36'
-            )
-        },
+    'http_headers': {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/122.0 Safari/537.36'
+        )
+    },
 
-        # TikTok improvements
-        'extractor_args': {
-            'tiktok': {
-                'webpage_download': ['false']
-            }
-        },
+    'extractor_args': {
+        'tiktok': {
+            'webpage_download': ['false']
+        }
+    },
 
-        # FFmpeg processing
-        'postprocessors': [{
-        'key': 'FFmpegVideoConvertor',
-        'preferredformat': 'mp4',
-        }],
- try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    'postprocessors': [
+        {
+            'key': 'FFmpegVideoConvertor',
+            'preferredformat': 'mp4',
+        }
+    ],
+}
 
-            info = ydl.extract_info(url, download=True)
+try:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-            if not info:
-                raise Exception('Unable to extract video information.')
+        info = ydl.extract_info(url, download=True)
 
-            title = info.get('title', 'video')
+        if not info:
+            raise Exception('Unable to extract video information.')
 
-            filename = ydl.prepare_filename(info)
+        title = info.get('title', 'video')
+
+        filename = ydl.prepare_filename(info)
+
+        filename = ydl.prepare_filename(info)
 
 # If the expected filename isn't found, search for any file
 # with the same base name regardless of extension.
